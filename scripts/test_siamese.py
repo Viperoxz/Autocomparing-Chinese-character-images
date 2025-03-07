@@ -9,7 +9,7 @@ def load_image(image_path):
     img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         raise ValueError(f"Cannot load image at {image_path}")
-    img = img.astype(np.float32) / 255.0  # Chuẩn hóa 0-1
+    img = img.astype(np.float32) / 255.0  
     img_tensor = torch.tensor(img, dtype=torch.float32).unsqueeze(0).unsqueeze(0)  # [1, 1, 64, 64]
     return img_tensor
 

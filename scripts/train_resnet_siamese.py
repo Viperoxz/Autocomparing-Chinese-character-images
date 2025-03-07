@@ -68,9 +68,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
 def optimize_hyperparameters(train_loader, val_loader, device, num_epochs=30, patience=10):
     best_val_acc = 0.0
     best_params = {}
-    lr_values = [0.0003, 0.0005, 0.001, 0.002]
-    margin_values = [1.0, 1.5, 2.0]
-    threshold_values = [0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]
+    lr_values = [0.0005, 0.001]
+    margin_values = [1.0]
+    threshold_values = [0.25, 0.3, 0.35, 0.4, 0.45]
     log_file = 'outputs/resnet_siamese/logs/training_log.txt'
 
     for lr, margin, threshold in [(lr, margin, threshold) for lr in lr_values for margin in margin_values for threshold in threshold_values]:
@@ -119,7 +119,7 @@ def final_evaluation(best_params, train_loader, val_loader, test_loader, device)
     print(f"Final test accuracy with optimized hyperparameters: {test_acc:.2f}%")
     return test_acc
 
-# Main execution
+
 if __name__ == "__main__":
     print(f"Available RAM before loading: {psutil.virtual_memory().available / 1024**3:.2f} GB")
 

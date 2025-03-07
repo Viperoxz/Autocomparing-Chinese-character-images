@@ -12,8 +12,8 @@ class SiameseDataset(Dataset):
             raise FileNotFoundError(f"HDF5 file not found at {h5_file}")
         with h5py.File(h5_file, 'r') as f:
             print(f"Loading {h5_file} into RAM...")
-            self.img1 = np.array(f['img1'], dtype=np.float32) / 255.0  # Chuẩn hóa 0-1
-            self.img2 = np.array(f['img2'], dtype=np.float32) / 255.0  # Chuẩn hóa 0-1
+            self.img1 = np.array(f['img1'], dtype=np.float32) / 255.0  # Normalize 0-1
+            self.img2 = np.array(f['img2'], dtype=np.float32) / 255.0  # Normalize 0-1
             self.labels = np.array(f['labels'], dtype=np.float32)
             print(f"img1 shape: {self.img1.shape}, min/max: {self.img1.min()}/{self.img1.max()}")
             print(f"img2 shape: {self.img2.shape}, min/max: {self.img2.min()}/{self.img2.max()}")
