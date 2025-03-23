@@ -5,16 +5,16 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from model import SiameseNetwork
+from model import EfficientNetSiameseNetwork
 from utils.dataset import SiameseDataset
 from utils.loss import ContrastiveLoss
-from utils.helpers import train_epoch, validate_epoch, plot_hist
+from utils.helpers import train_epoch, validate_epoch
 
 def train_and_validate_lr_margin(model, train_loader, val_loader, criterion, optimizer, num_epochs, device, patience=10):
     train_losses, val_losses = [], []
     best_val_loss = float('inf')
     patience_counter = 0
-    checkpoint_path = f'siamese_checkpoint_lr_{optimizer.param_groups[0]["lr"]}_margin_{criterion.margin}.pth'
+    checkpoint_path = f'effnet_siamese_checkpoint_lr_{optimizer.param_groups[0]["lr"]}_margin_{criterion.margin}.pth'
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=3, factor=0.5, min_lr=0.000075)
 
     with tqdm(total=num_epochs, desc=f"Training lr={optimizer.param_groups[0]['lr']}, margin={criterion.margin}") as pbar:
@@ -43,21 +43,6 @@ def train_and_validate_lr_margin(model, train_loader, val_loader, criterion, opt
             pbar.update(1)
     return checkpoint_path, min(val_losses)
 
-def find_best_threshold(model, val_loader, criterion, device, threshold_values):
-    model.eval()
-    best_acc = 0
-    best_threshold = threshold_values[0]
-    
-    with torch.no_grad():
-        for threshold in threshold_values:
-            _, val_acc, similar_diffs, dissimilar_diffs = validate_epoch(model, val_loader, criterion, device, threshold)
-            print(f"Threshold={threshold:.2f}, Val Accuracy={val_acc:.2f}%")
-            if val_acc > best_acc:
-                best_acc = val_acc
-                best_threshold = threshold
-        plot_hist(similar_diffs, dissimilar_diffs, best_threshold)
-    return best_threshold, best_acc
-
 if __name__ == "__main__":
     print(f"Available RAM before loading: {psutil.virtual_memory().available / 1024**3:.2f} GB")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -69,16 +54,11 @@ if __name__ == "__main__":
     train_dataset = SiameseDataset(train_file, train_mode=True)
     val_dataset = SiameseDataset(val_file, train_mode=False)
 
-    print(f"Train dataset: {len(train_dataset)} pairs, Ratio of similar pairs: {np.mean(train_dataset.labels == 1):.2f}")
-    print(f"Validation dataset: {len(val_dataset)} pairs, Ratio of similar pairs: {np.mean(val_dataset.labels == 1):.2f}")
-    print(f"Available RAM after loading: {psutil.virtual_memory().available / 1024**3:.2f} GB")
-
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True, num_workers=4, pin_memory=True)
     val_loader = DataLoader(val_dataset, batch_size=256, shuffle=False, num_workers=4, pin_memory=True)
 
-    lr_values = [0.0005, 0.001]
-    margin_values = [1.0]
-    threshold_values = [0.3, 0.5]
+    lr_values = [0.0003, 0.0005, 0.0007, 0.001]
+    margin_values = [1.0, 1.5]
     NUM_EPOCHS = 20
     PATIENCE = 10
 
@@ -89,7 +69,7 @@ if __name__ == "__main__":
     for lr in lr_values:
         for margin in margin_values:
             print(f"\n=== Trying lr={lr}, margin={margin} ===")
-            model = SiameseNetwork().to(device)
+            model = EfficientNetSiameseNetwork(freeze_base=True).to(device)
             optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=1e-4)
             criterion = ContrastiveLoss(margin=margin)
             
@@ -101,13 +81,5 @@ if __name__ == "__main__":
                 best_lr_margin = (lr, margin)
                 best_checkpoint = checkpoint_path
 
-    print(f"\n=== Finding best threshold for lr={best_lr_margin[0]}, margin={best_lr_margin[1]} ===")
-    model = SiameseNetwork().to(device)
-    checkpoint = torch.load(best_checkpoint)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    criterion = ContrastiveLoss(margin=best_lr_margin[1])
-    best_threshold, best_val_acc = find_best_threshold(model, val_loader, criterion, device, threshold_values)
-
-    print(f"\n=== Training and Hyperparameter Tuning Completed ===")
-    print(f"Best Hyperparameters: lr={best_lr_margin[0]}, margin={best_lr_margin[1]}, threshold={best_threshold}")
-    print(f"Best Validation Loss: {best_val_loss:.4f}, Best Validation Accuracy: {best_val_acc:.2f}%")
+    print(f"\nBest Hyperparameters: lr={best_lr_margin[0]}, margin={best_lr_margin[1]}")
+    print(f"Best Validation Loss: {best_val_loss:.4f}")

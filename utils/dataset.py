@@ -12,15 +12,17 @@ class SiameseDataset(Dataset):
             raise FileNotFoundError(f"HDF5 file not found at {h5_file}")
         with h5py.File(h5_file, 'r') as f:
             print(f"Loading {h5_file} into RAM...")
-            self.img1 = np.array(f['img1'], dtype=np.float32) / 255.0  # Normalize 0-1
-            self.img2 = np.array(f['img2'], dtype=np.float32) / 255.0  # Normalize 0-1
+            start_time = time.time()
+            self.img1 = np.array(f['img1'], dtype=np.float32)
+            self.img2 = np.array(f['img2'], dtype=np.float32)
             self.labels = np.array(f['labels'], dtype=np.float32)
             print(f"img1 shape: {self.img1.shape}, min/max: {self.img1.min()}/{self.img1.max()}")
             print(f"img2 shape: {self.img2.shape}, min/max: {self.img2.min()}/{self.img2.max()}")
             self.train_mode = train_mode
+            print(f"Loaded in {time.time() - start_time:.2f}s")
 
     def augment_image(self, img):
-        img_tensor = torch.tensor(img, dtype=torch.float32).unsqueeze(0)  # [64, 64] -> [1, 64, 64]
+        img_tensor = torch.tensor(img, dtype=torch.float32).unsqueeze(0)
         if random.random() < 0.7:
             k = random.randint(0, 3)
             img_tensor = torch.rot90(img_tensor, k, [1, 2])
@@ -31,6 +33,9 @@ class SiameseDataset(Dataset):
             shift = random.uniform(-0.1, 0.1)
             img_tensor = torch.roll(img_tensor, shifts=int(shift * 64), dims=1)
             img_tensor = torch.roll(img_tensor, shifts=int(shift * 64), dims=2)
+        if random.random() < 0.5:
+            brightness = random.uniform(0.8, 1.2)
+            img_tensor = torch.clamp(img_tensor * brightness, 0, 1)
         return img_tensor.squeeze(0)
 
     def __len__(self):

@@ -1,7 +1,8 @@
 import torch
 import cv2
 import os
-from model import SiameseNetwork
+import numpy as np
+from model import EfficientNetSiameseNetwork
 from utils.loss import ContrastiveLoss
 
 def load_image(image_path):
@@ -15,7 +16,7 @@ def load_image(image_path):
 
 def test_model(image1_path, image2_path, checkpoint_path, threshold, device, margin):
     """Kiểm tra mô hình trên một cặp ảnh."""
-    model = SiameseNetwork().to(device)
+    model = EfficientNetSiameseNetwork(freeze_base=True).to(device)
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
@@ -36,11 +37,12 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
 
     # Cấu hình
-    checkpoint_path = "siamese_checkpoint_lr_0.0005_margin_1.0.pth"  # Thay bằng checkpoint thực tế
-    threshold = 0.3  # Thay bằng threshold tối ưu từ train.py
+    checkpoint_path = "effnet_siamese_checkpoint_lr_0.0005_margin_1.0.pth"  # Thay bằng checkpoint thực tế
+    threshold = 0.5  # Thay bằng threshold tối ưu
     margin = 1.0  # Thay bằng margin tối ưu từ train.py
     test_samples_dir = 'data/test_samples'  # Thư mục chứa ảnh test
 
+    # Tạo thư mục nếu chưa tồn tại (tùy chọn)
     os.makedirs(test_samples_dir, exist_ok=True)
 
     # Duyệt qua các cặp ảnh mẫu
