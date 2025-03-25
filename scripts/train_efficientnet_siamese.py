@@ -5,7 +5,7 @@ import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from model import EfficientNetSiameseNetwork
+from models.efficientnet_siamese.efficientnet_siamese_model import EfficientNetSiameseNetwork
 from utils.dataset import SiameseDataset
 from utils.loss import ContrastiveLoss
 from utils.helpers import train_epoch, validate_epoch
